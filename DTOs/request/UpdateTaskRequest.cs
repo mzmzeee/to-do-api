@@ -1,3 +1,3 @@
 namespace DTOs.request;
 
-public record UpdateTaskRequest(Guid Id, string Title, string Description);
+public record UpdateTaskRequest(string Title, string Description);

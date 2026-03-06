@@ -32,6 +32,10 @@ public static class ApiEndpoints
             (Guid id, IMemDb db) =>
             {
                 var task = db.tasks.FirstOrDefault(a => a.Id == id);
+                if (task is null)
+                {
+                    return Results.NotFound();
+                }
                 return Results.Ok(task);
             }
         );

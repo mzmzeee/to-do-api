@@ -11,13 +11,7 @@ public class MemDb : IMemDb
     public List<User> users { get; } = [];
     public List<ToDoTask> tasks { get; } = [];
 
-    public void Adduser(User user)
-    {
-        users.Add(user);
-    }
+    public void Adduser(User user) => users.Add(user);
 
-    public void AddTask(ToDoTask task)
-    {
-        tasks.Add(task);
-    }
+    public void AddTask(ToDoTask task) => tasks.Add(task);
 }

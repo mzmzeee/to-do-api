@@ -1,4 +1,5 @@
 using DTOs.request;
+using DTOs.response;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -19,7 +20,8 @@ public class ToDosController(IMemDb db) : ControllerBase
 
         _db.AddTask(task);
 
-        return CreatedAtAction(nameof(GetById), new { id = task.Id }, task);
+        var returnedtask = new TaskResponse(task.Id, task.Title, task.Description);
+        return CreatedAtAction(nameof(GetById), new { id = task.Id }, returnedtask);
     }
 
     [HttpGet]
@@ -37,8 +39,9 @@ public class ToDosController(IMemDb db) : ControllerBase
         {
             return NotFound();
         }
+        var returnedtask = new TaskResponse(task.Id, task.Title, task.Description);
 
-        return Ok(task);
+        return Ok(returnedtask);
     }
 
     [HttpPut("{id}")]
@@ -55,7 +58,8 @@ public class ToDosController(IMemDb db) : ControllerBase
         foundTask.Description = request.Description;
         foundTask.IsDone = request.IsDone;
 
-        return Ok(foundTask);
+        var returnedtask = new TaskResponse(foundTask.Id, foundTask.Title, foundTask.Description);
+        return Ok(returnedtask);
     }
 
     [HttpDelete("{id}")]
@@ -69,6 +73,12 @@ public class ToDosController(IMemDb db) : ControllerBase
         }
 
         _db.tasks.Remove(deletedTask);
+
+        var returnedtask = new TaskResponse(
+            deletedTask.Id,
+            deletedTask.Title,
+            deletedTask.Description
+        );
 
         return Ok(deletedTask);
     }

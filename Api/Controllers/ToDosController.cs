@@ -1,5 +1,6 @@
 using DTOs.request;
 using DTOs.response;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -9,13 +10,19 @@ public class ToDosController(IMemDb db) : ControllerBase
     private readonly IMemDb _db = db;
 
     [HttpPost]
-    public IActionResult Create([FromBody] TaskRequest request)
+    public IActionResult Create([FromBody] CreateTaskRequest request , IValidator<CreateTaskRequest> validator)
     {
+        var validationResult = validator.Validate(request);
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.Errors);
+        }
         var task = new ToDoTask
         {
             UserId = Guid.NewGuid(),
             Title = request.Title,
             Description = request.Description,
+            IsDone = request.IsDone,
         };
 
         _db.AddTask(task);
@@ -45,8 +52,13 @@ public class ToDosController(IMemDb db) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public IActionResult Update([FromRoute] Guid id, [FromBody] TaskRequest request)
+    public IActionResult Update([FromRoute] Guid id, [FromBody] UpdateTaskRequest request , IValidator<UpdateTaskRequest> validator)
     {
+        var validationResult = validator.Validate(request);
+        if (!validationResult.IsValid)
+        {
+            return BadRequest(validationResult.Errors);
+        }
         var foundTask = _db.tasks.FirstOrDefault(x => x.Id == id);
 
         if (foundTask is null)

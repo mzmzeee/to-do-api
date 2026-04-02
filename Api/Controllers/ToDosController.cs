@@ -10,7 +10,10 @@ public class ToDosController(IMemDb db) : ControllerBase
     private readonly IMemDb _db = db;
 
     [HttpPost]
-    public IActionResult Create([FromBody] CreateTaskRequest request , IValidator<CreateTaskRequest> validator)
+    public IActionResult Create(
+        [FromBody] CreateTaskRequest request,
+        IValidator<CreateTaskRequest> validator
+    )
     {
         var validationResult = validator.Validate(request);
         if (!validationResult.IsValid)
@@ -52,7 +55,11 @@ public class ToDosController(IMemDb db) : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public IActionResult Update([FromRoute] Guid id, [FromBody] UpdateTaskRequest request , IValidator<UpdateTaskRequest> validator)
+    public IActionResult Update(
+        [FromRoute] Guid id,
+        [FromBody] UpdateTaskRequest request,
+        IValidator<UpdateTaskRequest> validator
+    )
     {
         var validationResult = validator.Validate(request);
         if (!validationResult.IsValid)
@@ -92,6 +99,6 @@ public class ToDosController(IMemDb db) : ControllerBase
             deletedTask.Description
         );
 
-        return Ok(deletedTask);
+        return Ok(returnedtask);
     }
 }

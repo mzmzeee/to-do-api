@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:18
+    container_name: todo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: todo
+      POSTGRES_USER: usr1
+      POSTGRES_PASSWORD: 123456789
+      PGDATA: /var/lib/postgresql/18/docker
+    ports:
+      - "5432:5432"
+    volumes:
+      - todo-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U usr1 -d todo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  todo-postgres-data:

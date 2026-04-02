@@ -1,72 +1,108 @@
+using Api.Data;
 using DTOs.request;
 using DTOs.response;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("todos")]
-public class ToDosController(IMemDb db) : ControllerBase
+public class ToDosController(
+    AppDbContext db,
+    IValidator<CreateTaskRequest> createValidator,
+    IValidator<UpdateTaskRequest> updateValidator
+) : ControllerBase
 {
-    private readonly IMemDb _db = db;
+    private readonly AppDbContext _db = db;
+    private readonly IValidator<CreateTaskRequest> _createValidator = createValidator;
+    private readonly IValidator<UpdateTaskRequest> _updateValidator = updateValidator;
+
+    private async Task<User> GetOrCreateDevUserAsync()
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == "dev@local");
+        if (user is not null)
+        {
+            return user;
+        }
+
+        user = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = "dev",
+            Email = "dev@local",
+            PasswordHash = "dev",
+        };
+
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        return user;
+    }
 
     [HttpPost]
-    public IActionResult Create(
-        [FromBody] CreateTaskRequest request,
-        IValidator<CreateTaskRequest> validator
-    )
+    public async Task<IActionResult> Create([FromBody] CreateTaskRequest request)
     {
-        var validationResult = validator.Validate(request);
+        var validationResult = await _createValidator.ValidateAsync(request);
         if (!validationResult.IsValid)
         {
             return BadRequest(validationResult.Errors);
         }
+
+        var user = await GetOrCreateDevUserAsync();
+
         var task = new ToDoTask
         {
-            UserId = Guid.NewGuid(),
+            UserId = user.Id,
             Title = request.Title,
             Description = request.Description,
             IsDone = request.IsDone,
         };
 
-        _db.AddTask(task);
+        _db.ToDoTasks.Add(task);
+        await _db.SaveChangesAsync();
 
         var returnedtask = new TaskResponse(task.Id, task.Title, task.Description);
         return CreatedAtAction(nameof(GetById), new { id = task.Id }, returnedtask);
     }
 
     [HttpGet]
-    public IActionResult GetAll()
+    public async Task<IActionResult> GetAll()
     {
-        return Ok(_db.tasks);
+        var tasks = await _db.ToDoTasks
+            .AsNoTracking()
+            .Select(t => new TaskResponse(t.Id, t.Title, t.Description))
+            .ToListAsync();
+
+        return Ok(tasks);
     }
 
-    [HttpGet("{id}")]
-    public IActionResult GetById([FromRoute] Guid id)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById([FromRoute] Guid id)
     {
-        var task = _db.tasks.FirstOrDefault(a => a.Id == id);
+        var task = await _db.ToDoTasks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id);
 
         if (task is null)
         {
             return NotFound();
         }
+
         var returnedtask = new TaskResponse(task.Id, task.Title, task.Description);
 
         return Ok(returnedtask);
     }
 
-    [HttpPut("{id}")]
-    public IActionResult Update(
-        [FromRoute] Guid id,
-        [FromBody] UpdateTaskRequest request,
-        IValidator<UpdateTaskRequest> validator
-    )
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateTaskRequest request)
     {
-        var validationResult = validator.Validate(request);
+        var validationResult = await _updateValidator.ValidateAsync(request);
         if (!validationResult.IsValid)
         {
             return BadRequest(validationResult.Errors);
         }
-        var foundTask = _db.tasks.FirstOrDefault(x => x.Id == id);
+
+        var foundTask = await _db.ToDoTasks.FirstOrDefaultAsync(x => x.Id == id);
 
         if (foundTask is null)
         {
@@ -77,21 +113,24 @@ public class ToDosController(IMemDb db) : ControllerBase
         foundTask.Description = request.Description;
         foundTask.IsDone = request.IsDone;
 
+        await _db.SaveChangesAsync();
+
         var returnedtask = new TaskResponse(foundTask.Id, foundTask.Title, foundTask.Description);
         return Ok(returnedtask);
     }
 
-    [HttpDelete("{id}")]
-    public IActionResult Delete([FromRoute] Guid id)
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
-        var deletedTask = _db.tasks.FirstOrDefault(x => x.Id == id);
+        var deletedTask = await _db.ToDoTasks.FirstOrDefaultAsync(x => x.Id == id);
 
         if (deletedTask is null)
         {
             return NotFound();
         }
 
-        _db.tasks.Remove(deletedTask);
+        _db.ToDoTasks.Remove(deletedTask);
+        await _db.SaveChangesAsync();
 
         var returnedtask = new TaskResponse(
             deletedTask.Id,
